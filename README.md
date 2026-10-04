@@ -8,6 +8,8 @@ A Claude Code mod that brings a second model into your chat when the first one g
 
 ## The band
 
+![The council band above the prompt in the Claude desktop app](docs/band.png)
+
 A row above the prompt:
 
 | Control | What it does |
