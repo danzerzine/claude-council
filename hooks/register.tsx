@@ -367,7 +367,7 @@ export const register: Register = on => {
         editsSinceReview += 1
       }
     } else if (e.tool === 'Bash' && /\bgit\b[^|;&]*\bcommit\b/.test(String(args.command ?? ''))) {
-      committedIn.add(await $.session.cwd())
+      committedIn.add(commitDirOf(String(args.command), await $.session.cwd(), String((await $.env.get('HOME')) ?? '')))
       editsSinceReview += 1
     }
     return ran
@@ -591,9 +591,15 @@ function reviewersOf($: any, mode: Mode): Reviewer[] {
   })
   const gemini: Reviewer = {
     name: 'Gemini',
+    // agy takes its prompt only on the command line, where any local process can read it (ps): the packet goes to
+    // a file in the private dir, and the command line carries just where to find it
     run: async (prompt, cwd) => {
+      const dir = await dirOf($)
+      const file = `${dir}/${Date.now()}-${newId()}-gemini-task.md`
+      await $.fs.write(file, prompt)
       const r = await $.process.run(
-        ['agy', '-p', prompt, '--mode', 'plan', '--model', 'gemini-3.1-pro-high', '--print-timeout', '8m'],
+        ['agy', `--print=Your whole task is in the file ${file}: read it first and do exactly what it says.`,
+          '--add-dir', dir, '--mode', 'plan', '--model', 'gemini-3.1-pro-high', '--print-timeout', '8m'],
         { cwd, env, timeoutMs: RUN_MS },
       )
       if (r.exitCode !== 0 || r.stdout.trim().length < 20) throw new Error(r.stderr.slice(-500))
@@ -601,6 +607,24 @@ function reviewersOf($: any, mode: Mode): Reviewer[] {
     },
   }
   return mode === 'deep' ? [codex, claude('opus'), gemini] : mode === 'accept' ? [codex] : [codex, claude('sonnet')]
+}
+
+// Where a Bash command committed: `git -C <dir> commit`, else the last `cd <dir>` before it, else the session's folder
+function commitDirOf(command: string, cwd: string, home: string): string {
+  const at = /\bgit\b[^|;&]*\bcommit\b/.exec(command)
+  if (!at) return cwd
+  const arg = String.raw`(?:"([^"]+)"|'([^']+)'|([^\s;&|]+))`
+  const pick = (m: RegExpExecArray) => m[1] ?? m[2] ?? m[3] ?? ''
+  const viaC = new RegExp(String.raw`\bgit\s+-C\s+` + arg).exec(at[0])
+  const resolve = (from: string, to: string) => {
+    if (to === '~' || to.startsWith('~/')) to = home + to.slice(1)
+    return to.startsWith('/') ? to : `${from.replace(/\/+$/, '')}/${to}`
+  }
+  let dir = cwd
+  for (const m of command.slice(0, at.index).matchAll(new RegExp(String.raw`(?:^|[;&|(]\s*)cd\s+` + arg, 'g'))) {
+    dir = resolve(dir, pick(m as RegExpExecArray))
+  }
+  return viaC ? resolve(dir, pick(viaC)) : dir
 }
 
 async function repoRootOf($: any, dir: string): Promise<string | null> {
