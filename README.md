@@ -66,11 +66,14 @@ Everything starts off. Pick a mode in the band or with a command.
 
 A turn is checked at most twice (three times in deep review), so a disagreement can't loop forever.
 
+GPT's answers and the reviewers' findings reach the agent marked as quotes from another model, not as your instructions: it checks them and never runs a command found in them. Briefs, answers and exchanges are kept in `~/.claude/council` (readable by you only) for 14 days.
+
 Reviewers run with `COUNCIL_REVIEWER=1`, and the mod stays quiet in any session that has it, so a reviewer's own Claude never reviews itself. It also does nothing in non-interactive `claude -p` runs.
 
 ## Limits
 
 - Acceptance compares the mockup through its files and the code. It does not render the page; screenshots the agent saved are opened if the brief or report names them.
+- Only the main agent's own edits are checked; work a subagent did is not.
 - On the desktop app the band can't show hover tooltips, hence the `?` button.
 
 ## Cost and time
