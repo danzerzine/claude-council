@@ -1,0 +1,1 @@
+{ "description": "Adversarial review gate on the main loop's Stop, /council modes, status line", "modules": ["./register.tsx"] }

@@ -1,0 +1,9 @@
+{
+  "name": "council",
+  "version": "0.3.0",
+  "description": "Second opinions inside Claude Code: GPT as fresh eyes when you go in circles, Codex acceptance of every handover, and Codex+Claude review of each change.",
+  "types": "./types/index.d.ts",
+  "author": {
+    "name": "danzerzine"
+  }
+}
